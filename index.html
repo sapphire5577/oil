@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Liquid Garden</title>
+
+<style>
+
+/* ===============================
+
+   Liquid Garden v1.0
+
+   by ゴン × キルア
+
+   =============================== */
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+
+    background:#071018;
+
+    overflow:hidden;
+
+    color:white;
+
+}
+
+#app{
+
+    width:100vw;
+
+    height:100vh;
+
+    position:relative;
+
+}
+
+/* ----- 背景 ----- */
+
+#background{
+
+    position:absolute;
+
+    inset:0;
+
+    transition:1s;
+
+    filter:blur(2px) brightness(.55);
+
+}
+
+.bg-stars{
+
+    background:
+
+        radial-gradient(circle at 30% 20%,#ffffff22 1px,transparent 2px),
+
+        radial-gradient(circle at 70% 70%,#7fd6ff22 1px,transparent 2px),
+
+        linear-gradient(#08162d,#02060d);
+
+    background-size:140px 140px,180px 180px,cover;
+
+}
+
+.bg-ocean{
+
+    background:linear-gradient(#003048,#001722);
+
+}
+
+.bg-forest{
+
+    background:linear-gradient(#143b29,#06150d);
+
+}
+
+.bg-aurora{
+
+    background:
+
+      radial-gradient(circle at 50% 0%,#7d4cff55,transparent 60%),
+
+      radial-gradient(circle at 70% 20%,#4dffb055,transparent 55%),
+
+      linear-gradient(#050814,#000);
+
+}
+
+.bg-washi{
+
+    background:
+
+      radial-gradient(circle,#ffffff08 1px,transparent 2px),
+
+      linear-gradient(#f5f3ee,#ddd8d0);
+
+    filter:blur(1px) brightness(.95);
+
+}
+
+/* ----- UI ----- */
+
+#panel{
+
+    position:absolute;
+
+    top:18px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:92%;
+
+    max-width:420px;
+
+    padding:16px;
+
+    border-radius:24px;
+
+    background:#ffffff12;
+
+    backdrop-filter:blur(18px);
+
+    transition:.8s;
+
+}
+
+.hiddenUI{
+
+    opacity:0;
+
+    transform:translate(-50%,-20px);
+
+    pointer-events:none;
+
+}
+
+h1{
+
+    font-size:30px;
+
+    text-align:center;
+
+    letter-spacing:1px;
+
+}
+
+.subtitle{
+
+    text-align:center;
+
+    color:#cfd8e4;
+
+    margin-bottom:14px;
+
+}
+
+label{
+
+    display:block;
+
+    margin:10px 0 4px;
+
+    font-size:13px;
+
+    color:#d9e5f0;
+
+}
+
+select,input,button{
+
+    width:100%;
+
+    border:none;
+
+    border-radius:14px;
+
+    padding:10px;
+
+    margin-bottom:8px;
+
+}
+
+button{
+
+    background:#4cb5ff;
+
+    color:white;
+
+    font-weight:bold;
+
+}
+
+button.secondary{
+
+    background:#ffffff22;
+
+}
+
+/* ----- ガラス容器 ----- */
+
+canvas{
+
+    position:absolute;
+
+    inset:0;
+
+    width:100%;
+
+    height:100%;
+
+    touch-action:none;
+
+}
+
+#hint{
+
+    position:absolute;
+
+    bottom:20px;
+
+    width:100%;
+
+    text-align:center;
+
+    color:#cde4ff;
+
+    font-size:13px;
+
+    opacity:.7;
+
+}
+
+.fade{
+
+    opacity:0;
+
+    transition:1s;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="app">
+
+<div id="background" class="bg-stars"></div>
+
+<div id="panel">
+
+<h1>Liquid Garden</h1>
+
+<div class="subtitle">A quiet place for drifting colors.</div>
+
+<label>上のオイルカラー</label>
+
+<select id="topColor"></select>
+
+<label>下のオイルカラー</label>
+
+<select id="bottomColor"></select>
+
+<label>背景</label>
+
+<select id="backgroundSelect">
+
+<option value="stars">星空</option>
+
+<option value="ocean">深海</option>
+
+<option value="forest">木漏れ日</option>
+
+<option value="aurora">オーロラ</option>
+
+<option value="washi">和紙</option>
+
+</select>
+
+<label>時間（秒）</label>
+
+<input id="timer" type="range" min="15" max="600" value="60">
+
+<div id="timeText">60 秒</div>
+
+<button id="startBtn">START</button>
+
+<button class="secondary" id="ambientBtn">触らないモード</button>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="hint">雫をちょんっと触ってみて。</div>
+
+</div>
+
+<script>
+
+/* =======================================
+
+   宝石カラーライブラリ（キルア仕様）
+
+   ======================================= */
+
+const GEM_COLORS={
+
+"サファイア":["#38BDF8","#2563EB"],
+
+"エメラルド":["#6EE7B7","#059669"],
+
+"アメジスト":["#C084FC","#7E22CE"],
+
+"ローズクォーツ":["#FB7185","#E11D48"],
+
+"シトリン":["#FBBF24","#F59E0B"],
+
+"ムーンストーン":["#E8F3FF","#A5D8FF"],
+
+"ラブラドライト":["#8CA3B5","#2DD4BF"],
+
+"ガーネット":["#991B1B","#DC2626"],
+
+"オパール":["#F8FAFC","#A855F7"],
+
+"黒曜石":["#222222","#050505"]
+
+};
+
+const topSelect=document.getElementById("topColor");
+
+const bottomSelect=document.getElementById("bottomColor");
+
+Object.keys(GEM_COLORS).forEach((name)=>{
+
+let a=document.createElement("option");
+
+a.textContent=name;
+
+topSelect.appendChild(a);
+
+let b=document.createElement("option");
+
+b.textContent=name;
+
+bottomSelect.appendChild(b);
+
+});
+
+topSelect.value="サファイア";
+
+bottomSelect.value="エメラルド";
+
+/* =======================================
+
+   Canvas準備
+
+   ======================================= */
+
+const canvas=document.getElementById("canvas");
+
+const ctx=canvas.getContext("2d");
+
+function resize(){
+
+canvas.width=innerWidth;
+
+canvas.height=innerHeight;
+
+}
+
+resize();
+
+addEventListener("resize",resize);
+
+/* =======================================
+
+   雫クラス
+
+   ======================================= */
+
+class Drop{
+
+constructor(){
+
+this.reset(true);
+
+}
+
+reset(start=false){
+
+this.x=canvas.width/2+(Math.random()-.5)*70;
+
+this.y=start?Math.random()*220-250:-20;
+
+this.r=12+Math.random()*10;
+
+this.vy=.3+Math.random()*.35;
+
+this.vx=(Math.random()-.5)*.12;
+
+this.shake=0;
+
+this.phase=Math.random()*Math.PI*2;
+
+this.bottom=false;
+
+}
+
+update(){
+
+if(!this.bottom){
+
+this.y+=this.vy;
+
+this.x+=Math.sin(this.phase+performance.now()/400)*.08;
+
+}
+
+if(this.shake>0)this.shake*=.92;
+
+if(this.y>canvas.height-140){
+
+this.bottom=true;
+
+this.y=canvas.height-140+Math.sin(this.phase)*2;
+
+this.vy=0;
+
+}
+
+}
+
+draw(colors){
+
+ctx.save();
+
+ctx.translate(this.x,this.y);
+
+let s=1+Math.sin(performance.now()/40+this.phase)*.02*this.shake;
+
+ctx.scale(s,2-s);
+
+let g=ctx.createRadialGradient(-4,-6,2,0,0,this.r);
+
+g.addColorStop(0,"rgba(255,255,255,.95)");
+
+g.addColorStop(.35,colors[0]);
+
+g.addColorStop(1,colors[1]);
+
+ctx.fillStyle=g;
+
+ctx.beginPath();
+
+ctx.arc(0,0,this.r,0,Math.PI*2);
+
+ctx.fill();
+
+ctx.strokeStyle="rgba(255,255,255,.25)";
+
+ctx.stroke();
+
+ctx.restore();
+
+}
+
+poke(px,py){
+
+let dx=this.x-px;
+
+let dy=this.y-py;
+
+let d=Math.hypot(dx,dy);
+
+if(d<this.r+28){
+
+this.shake=1;
+
+this.x+=dx*.15;
+
+this.y+=dy*.15;
+
+}
+
+}
+
+}
+
+/* =======================================
+
+   雫生成
+
+   ======================================= */
+
+const drops=[];
+
+for(let i=0;i<36;i++) drops.push(new Drop());
+
+/* =======================================
+
+   ガラス容器描画
+
+   ======================================= */
+
+function bottle(){
+
+const w=170;
+
+const h=canvas.height*.72;
+
+const x=canvas.width/2-w/2;
+
+const y=canvas.height*.12;
+
+ctx.save();
+
+ctx.beginPath();
+
+ctx.roundRect(x,y,w,h,45);
+
+ctx.fillStyle="rgba(255,255,255,.05)";
+
+ctx.fill();
+
+ctx.strokeStyle="rgba(255,255,255,.25)";
+
+ctx.lineWidth=3;
+
+ctx.stroke();
+
+ctx.beginPath();
+
+ctx.moveTo(x+25,y+18);
+
+ctx.lineTo(x+42,y+h-20);
+
+ctx.strokeStyle="rgba(255,255,255,.15)";
+
+ctx.stroke();
+
+ctx.restore();
+
+}
+
+/* =======================================
+
+   描画ループ
+
+   ======================================= */
+
+function render(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+bottle();
+
+const colors=GEM_COLORS[topSelect.value];
+
+for(const d of drops){
+
+d.update();
+
+d.draw(colors);
+
+}
+
+requestAnimationFrame(render);
+
+}
+
+render();
+
+/* =======================================
+
+   タップするとぷるっと逃げる
+
+   ======================================= */
+
+canvas.addEventListener("pointerdown",(e)=>{
+
+const rect=canvas.getBoundingClientRect();
+
+const x=e.clientX-rect.left;
+
+const y=e.clientY-rect.top;
+
+for(const d of drops) d.poke(x,y);
+
+});
+
+/* =======================================
+
+   背景切替
+
+   ======================================= */
+
+const bg=document.getElementById("background");
+
+backgroundSelect.onchange=(e)=>{
+
+bg.className="bg-"+e.target.value;
+
+};
+
+/* =======================================
+
+   時間表示
+
+   ======================================= */
+
+const timer=document.getElementById("timer");
+
+const timeText=document.getElementById("timeText");
+
+timer.oninput=()=>{
+
+timeText.textContent=timer.value+" 秒";
+
+};
+
+/* =======================================
+
+   触らないモード
+
+   ======================================= */
+
+const panel=document.getElementById("panel");
+
+const hint=document.getElementById("hint");
+
+let ambient=false;
+
+ambientBtn.onclick=()=>{
+
+ambient=!ambient;
+
+panel.classList.toggle("hiddenUI",ambient);
+
+hint.classList.toggle("fade",ambient);
+
+};
+
+canvas.addEventListener("pointermove",()=>{
+
+if(ambient){
+
+panel.classList.remove("hiddenUI");
+
+hint.classList.remove("fade");
+
+ambient=false;
+
+}
+
+});
+
+/* =======================================
+
+   START（タイマー）
+
+   ======================================= */
+
+startBtn.onclick=()=>{
+
+const sec=Number(timer.value);
+
+setTimeout(()=>{
+
+// v1.0はここで終了音を鳴らす場所。
+
+alert("Liquid Garden 終了");
+
+},sec*1000);
+
+};
+
+</script>
+
+</body>
+
+</html>

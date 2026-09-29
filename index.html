@@ -1,695 +1,798 @@
 <!DOCTYPE html>
-
 <html lang="ja">
-
 <head>
-
-<meta charset="UTF-8" />
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071018">
 <title>Liquid Garden</title>
-
 <style>
+/* =========================================================
+   Liquid Garden v1.1
+   Original layout sketch by キルア
+   UI refined together.
+   ---------------------------------------------------------
+   目的：設定画面と本番のLiquid Viewを完全に分離する。
+   背景・容器・オイルはJavaScriptで差し替え可能。
+   ========================================================= */
 
-/* ===============================
-
-   Liquid Garden v1.0
-
-   by ゴン × キルア
-
-   =============================== */
-
-*{box-sizing:border-box;margin:0;padding:0;}
-
+:root{
+  --bg:#071018;
+  --panel:rgba(16,25,38,.82);
+  --line:rgba(225,240,255,.20);
+  --text:#f4f7fb;
+  --muted:#aebdcd;
+  --accent:#55b8ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
 body{
-
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-
-    background:#071018;
-
-    overflow:hidden;
-
-    color:white;
-
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);background:#02060b;
+  -webkit-font-smoothing:antialiased;
 }
-
-#app{
-
-    width:100vw;
-
-    height:100vh;
-
-    position:relative;
-
+button,select,input{font:inherit}
+button,select{touch-action:manipulation}
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+.screen{
+  position:absolute;inset:0;transition:opacity .65s ease,transform .65s ease;
 }
-
-/* ----- 背景 ----- */
-
-#background{
-
-    position:absolute;
-
-    inset:0;
-
-    transition:1s;
-
-    filter:blur(2px) brightness(.55);
-
+.screen.hidden{opacity:0;pointer-events:none;transform:scale(1.025)}
+#settingsScreen{overflow-y:auto;overscroll-behavior:contain}
+#settingsBg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 20% 15%,rgba(80,170,255,.10),transparent 35%),
+    radial-gradient(circle at 85% 80%,rgba(100,255,190,.07),transparent 35%),
+    linear-gradient(145deg,#111b29,#050a11 70%);
 }
-
+.settingsWrap{
+  position:relative;width:min(92vw,460px);min-height:100%;
+  margin:auto;padding:28px 0 34px;
+}
+.logo{text-align:center;margin:2px 0 20px}
+.logo h1{margin:0;font-size:clamp(30px,8vw,42px);letter-spacing:.5px}
+.logo p{margin:5px 0 0;color:#cbd6e2;font-size:14px}
+.sectionTitle{
+  margin:0 0 10px 4px;color:#b9cde1;
+  font-size:12px;letter-spacing:2px;text-transform:uppercase;
+}
+.setting{
+  margin:0 0 12px;
+  padding:13px 15px;border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;background:rgba(255,255,255,.055);
+  backdrop-filter:blur(14px);
+}
+.setting label{display:block;font-size:12px;color:#b9c8d8;margin:0 0 7px}
+select{
+  width:100%;height:44px;padding:0 13px;border:1px solid rgba(255,255,255,.13);
+  border-radius:13px;background:rgba(245,248,252,.95);color:#10151c;
+  outline:none;-webkit-appearance:auto;appearance:auto;
+}
+.rangeRow{display:flex;align-items:center;gap:12px}
+input[type=range]{width:100%;accent-color:#49adff}
+#timeText{min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
+.previewTitle{margin:17px 4px 8px;color:#b9cde1;font-size:12px;letter-spacing:2px}
+.previewFrame{
+  position:relative;padding:11px;border-radius:27px;
+  border:1px solid rgba(235,247,255,.25);
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 16px 40px rgba(0,0,0,.20);
+  backdrop-filter:blur(18px);
+}
+.previewFrame:before{
+  content:"";position:absolute;left:18px;top:13px;width:35%;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,.55),transparent);
+}
+#previewCanvas{
+  display:block;width:100%;height:auto;border-radius:19px;
+}
+.previewHint{text-align:center;color:#91a4b8;font-size:11px;margin:8px 0 0}
+#startBtn{
+  width:100%;height:54px;margin-top:17px;border:0;border-radius:27px;
+  color:#fff;font-weight:700;letter-spacing:1px;
+  background:linear-gradient(135deg,#45b2ff,#3b8eea);
+  box-shadow:0 10px 28px rgba(55,157,239,.23);
+}
+#startBtn:active{transform:scale(.985)}
+/* ------------------ 本番画面 ------------------ */
+#viewScreen{background:#02060b}
+#viewBg{position:absolute;inset:0;transition:filter .8s,background 1s}
 .bg-stars{
-
-    background:
-
-        radial-gradient(circle at 30% 20%,#ffffff22 1px,transparent 2px),
-
-        radial-gradient(circle at 70% 70%,#7fd6ff22 1px,transparent 2px),
-
-        linear-gradient(#08162d,#02060d);
-
-    background-size:140px 140px,180px 180px,cover;
-
+  background:
+    radial-gradient(circle at 18% 19%,rgba(255,255,255,.9) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 72% 28%,rgba(170,220,255,.8) 0 1px,transparent 1.7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.7) 0 1px,transparent 1.6px),
+    radial-gradient(circle at 84% 78%,rgba(120,190,255,.65) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 50% 35%,rgba(50,130,255,.13),transparent 48%),
+    linear-gradient(#07152c,#02060d);
+  background-size:190px 190px,240px 240px,220px 220px,270px 270px,100% 100%,100% 100%;
 }
-
 .bg-ocean{
-
-    background:linear-gradient(#003048,#001722);
-
+  background:
+    radial-gradient(ellipse at 35% 10%,rgba(80,220,255,.28),transparent 42%),
+    radial-gradient(ellipse at 70% 25%,rgba(0,120,190,.22),transparent 45%),
+    linear-gradient(180deg,#003b59,#00131e 75%);
 }
-
 .bg-forest{
-
-    background:linear-gradient(#143b29,#06150d);
-
+  background:
+    radial-gradient(circle at 20% 20%,rgba(160,255,185,.20),transparent 25%),
+    radial-gradient(circle at 75% 45%,rgba(80,180,100,.18),transparent 32%),
+    linear-gradient(145deg,#163b2b,#06140d 70%);
 }
-
 .bg-aurora{
-
-    background:
-
-      radial-gradient(circle at 50% 0%,#7d4cff55,transparent 60%),
-
-      radial-gradient(circle at 70% 20%,#4dffb055,transparent 55%),
-
-      linear-gradient(#050814,#000);
-
+  background:
+    radial-gradient(ellipse at 50% 5%,rgba(155,90,255,.38),transparent 43%),
+    radial-gradient(ellipse at 70% 25%,rgba(50,255,190,.22),transparent 42%),
+    radial-gradient(ellipse at 25% 55%,rgba(80,130,255,.18),transparent 45%),
+    linear-gradient(#080a1b,#02040a);
 }
-
 .bg-washi{
-
-    background:
-
-      radial-gradient(circle,#ffffff08 1px,transparent 2px),
-
-      linear-gradient(#f5f3ee,#ddd8d0);
-
-    filter:blur(1px) brightness(.95);
-
+  background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.22),transparent 20%),
+    radial-gradient(circle at 75% 70%,rgba(160,145,125,.13),transparent 28%),
+    linear-gradient(145deg,#c9c1b5,#80776c);
 }
-
-/* ----- UI ----- */
-
-#panel{
-
-    position:absolute;
-
-    top:18px;
-
-    left:50%;
-
-    transform:translateX(-50%);
-
-    width:92%;
-
-    max-width:420px;
-
-    padding:16px;
-
-    border-radius:24px;
-
-    background:#ffffff12;
-
-    backdrop-filter:blur(18px);
-
-    transition:.8s;
-
+#viewCanvas{
+  position:absolute;inset:0;width:100%;height:100%;
+  touch-action:none;
 }
-
-.hiddenUI{
-
-    opacity:0;
-
-    transform:translate(-50%,-20px);
-
-    pointer-events:none;
-
+.viewTop{
+  position:absolute;left:14px;right:14px;top:max(14px,env(safe-area-inset-top));
+  display:flex;justify-content:space-between;align-items:center;
+  pointer-events:none;
 }
-
-h1{
-
-    font-size:30px;
-
-    text-align:center;
-
-    letter-spacing:1px;
-
+.viewTop button,.viewTop .timerBadge{
+  pointer-events:auto;
 }
-
-.subtitle{
-
-    text-align:center;
-
-    color:#cfd8e4;
-
-    margin-bottom:14px;
-
+.viewTop button{
+  width:42px;height:42px;border:1px solid rgba(255,255,255,.16);
+  border-radius:50%;background:rgba(0,0,0,.24);color:#fff;
+  backdrop-filter:blur(12px);
 }
-
-label{
-
-    display:block;
-
-    margin:10px 0 4px;
-
-    font-size:13px;
-
-    color:#d9e5f0;
-
+.timerBadge{
+  padding:9px 13px;border-radius:18px;background:rgba(0,0,0,.20);
+  border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(12px);
+  font-variant-numeric:tabular-nums;font-size:13px;
 }
-
-select,input,button{
-
-    width:100%;
-
-    border:none;
-
-    border-radius:14px;
-
-    padding:10px;
-
-    margin-bottom:8px;
-
+.viewHint{
+  position:absolute;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));
+  text-align:center;color:rgba(235,246,255,.65);font-size:12px;
+  pointer-events:none;transition:opacity .8s;
 }
-
-button{
-
-    background:#4cb5ff;
-
-    color:white;
-
-    font-weight:bold;
-
+.viewHint.off{opacity:0}
+.finishFlash{
+  position:absolute;inset:0;background:rgba(255,255,255,.13);
+  opacity:0;pointer-events:none;transition:opacity .2s;
 }
-
-button.secondary{
-
-    background:#ffffff22;
-
-}
-
-/* ----- ガラス容器 ----- */
-
-canvas{
-
-    position:absolute;
-
-    inset:0;
-
-    width:100%;
-
-    height:100%;
-
-    touch-action:none;
-
-}
-
-#hint{
-
-    position:absolute;
-
-    bottom:20px;
-
-    width:100%;
-
-    text-align:center;
-
-    color:#cde4ff;
-
-    font-size:13px;
-
-    opacity:.7;
-
-}
-
-.fade{
-
-    opacity:0;
-
-    transition:1s;
-
-}
-
+.finishFlash.on{opacity:1}
 </style>
-
 </head>
-
 <body>
-
 <div id="app">
 
-<div id="background" class="bg-stars"></div>
+  <!-- ================= SETTINGS ================= -->
+  <section id="settingsScreen" class="screen">
+    <div id="settingsBg"></div>
+    <div class="settingsWrap">
 
-<div id="panel">
+      <header class="logo">
+        <h1>Liquid Garden</h1>
+        <p>A quiet place for drifting colors.</p>
+      </header>
 
-<h1>Liquid Garden</h1>
+      <div class="sectionTitle">Settings</div>
 
-<div class="subtitle">A quiet place for drifting colors.</div>
+      <div class="setting">
+        <label for="topColor">上のオイルカラー</label>
+        <select id="topColor"></select>
+      </div>
 
-<label>上のオイルカラー</label>
+      <div class="setting">
+        <label for="bottomColor">下のオイルカラー</label>
+        <select id="bottomColor"></select>
+      </div>
 
-<select id="topColor"></select>
+      <div class="setting">
+        <label for="backgroundSelect">背景</label>
+        <select id="backgroundSelect">
+          <option value="stars">星空</option>
+          <option value="ocean">深海</option>
+          <option value="forest">木漏れ日</option>
+          <option value="aurora">オーロラ</option>
+          <option value="washi">和紙</option>
+        </select>
+      </div>
 
-<label>下のオイルカラー</label>
+      <div class="setting">
+        <label for="vesselSelect">容器</label>
+        <select id="vesselSelect">
+          <option value="classic">クラシック</option>
+          <option value="orb">オーブ</option>
+          <option value="moon">月</option>
+          <option value="diamond">ダイヤ</option>
+          <option value="tube">試験管</option>
+          <option value="heart">ハート</option>
+        </select>
+      </div>
 
-<select id="bottomColor"></select>
+      <div class="setting">
+        <label for="timer">時間</label>
+        <div class="rangeRow">
+          <input id="timer" type="range" min="15" max="600" step="15" value="60">
+          <div id="timeText">1:00</div>
+        </div>
+      </div>
 
-<label>背景</label>
+      <div class="setting">
+        <label for="soundSelect">サウンド</label>
+        <select id="soundSelect">
+          <option value="on">ON</option>
+          <option value="off">OFF</option>
+        </select>
+      </div>
 
-<select id="backgroundSelect">
+      <!-- シンプルな設計図プレビュー。ここでは本番の物理演算を使わない。 -->
+      <div class="previewTitle">Preview</div>
+      <div class="previewFrame">
+        <canvas id="previewCanvas" width="640" height="390"></canvas>
+        <div class="previewHint">背景・容器・オイルの組み合わせを確認</div>
+      </div>
 
-<option value="stars">星空</option>
+      <button id="startBtn">START</button>
+    </div>
+  </section>
 
-<option value="ocean">深海</option>
-
-<option value="forest">木漏れ日</option>
-
-<option value="aurora">オーロラ</option>
-
-<option value="washi">和紙</option>
-
-</select>
-
-<label>時間（秒）</label>
-
-<input id="timer" type="range" min="15" max="600" value="60">
-
-<div id="timeText">60 秒</div>
-
-<button id="startBtn">START</button>
-
-<button class="secondary" id="ambientBtn">触らないモード</button>
-
-</div>
-
-<canvas id="canvas"></canvas>
-
-<div id="hint">雫をちょんっと触ってみて。</div>
+  <!-- ================= LIQUID VIEW ================= -->
+  <section id="viewScreen" class="screen hidden">
+    <div id="viewBg" class="bg-stars"></div>
+    <canvas id="viewCanvas"></canvas>
+    <div class="viewTop">
+      <button id="backBtn" aria-label="設定へ戻る">‹</button>
+      <div class="timerBadge" id="viewTimer">1:00</div>
+    </div>
+    <div class="viewHint" id="viewHint">雫をちょん、と触ってみて。</div>
+    <div class="finishFlash" id="finishFlash"></div>
+  </section>
 
 </div>
 
 <script>
-
-/* =======================================
-
-   宝石カラーライブラリ（キルア仕様）
-
-   ======================================= */
-
-const GEM_COLORS={
-
-"サファイア":["#38BDF8","#2563EB"],
-
-"エメラルド":["#6EE7B7","#059669"],
-
-"アメジスト":["#C084FC","#7E22CE"],
-
-"ローズクォーツ":["#FB7185","#E11D48"],
-
-"シトリン":["#FBBF24","#F59E0B"],
-
-"ムーンストーン":["#E8F3FF","#A5D8FF"],
-
-"ラブラドライト":["#8CA3B5","#2DD4BF"],
-
-"ガーネット":["#991B1B","#DC2626"],
-
-"オパール":["#F8FAFC","#A855F7"],
-
-"黒曜石":["#222222","#050505"]
-
+/* =========================================================
+   Liquid Garden — データ
+   色を追加するときは GEM_COLORS に1項目追加するだけ。
+   [明るい色, 深い色]
+   ========================================================= */
+const GEM_COLORS = {
+  "サファイア": ["#72d9ff","#1670e8"],
+  "エメラルド": ["#9af4c8","#139866"],
+  "アメジスト": ["#dfb0ff","#7a2fbe"],
+  "ローズクォーツ": ["#ff9bb1","#d72b57"],
+  "シトリン": ["#ffe17a","#e99408"],
+  "ムーンストーン": ["#ffffff","#b9d9ee"],
+  "ラブラドライト": ["#d2e0e7","#397f83"],
+  "ガーネット": ["#ef7180","#78101b"],
+  "オパール": ["#ffffff","#9d72ff"],
+  "黒曜石": ["#7d8795","#050609"]
 };
 
-const topSelect=document.getElementById("topColor");
+/* =========================================================
+   DOM
+   ========================================================= */
+const settingsScreen = document.getElementById("settingsScreen");
+const viewScreen = document.getElementById("viewScreen");
+const topColor = document.getElementById("topColor");
+const bottomColor = document.getElementById("bottomColor");
+const backgroundSelect = document.getElementById("backgroundSelect");
+const vesselSelect = document.getElementById("vesselSelect");
+const timer = document.getElementById("timer");
+const timeText = document.getElementById("timeText");
+const soundSelect = document.getElementById("soundSelect");
+const startBtn = document.getElementById("startBtn");
+const backBtn = document.getElementById("backBtn");
+const previewCanvas = document.getElementById("previewCanvas");
+const pctx = previewCanvas.getContext("2d");
+const viewCanvas = document.getElementById("viewCanvas");
+const ctx = viewCanvas.getContext("2d");
+const viewBg = document.getElementById("viewBg");
+const viewTimer = document.getElementById("viewTimer");
+const viewHint = document.getElementById("viewHint");
+const finishFlash = document.getElementById("finishFlash");
 
-const bottomSelect=document.getElementById("bottomColor");
-
-Object.keys(GEM_COLORS).forEach((name)=>{
-
-let a=document.createElement("option");
-
-a.textContent=name;
-
-topSelect.appendChild(a);
-
-let b=document.createElement("option");
-
-b.textContent=name;
-
-bottomSelect.appendChild(b);
-
+/* =========================================================
+   色セレクト
+   ========================================================= */
+Object.keys(GEM_COLORS).forEach(name=>{
+  topColor.add(new Option(name,name));
+  bottomColor.add(new Option(name,name));
 });
+topColor.value="サファイア";
+bottomColor.value="エメラルド";
 
-topSelect.value="サファイア";
+/* =========================================================
+   共通ユーティリティ
+   ========================================================= */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
 
-bottomSelect.value="エメラルド";
-
-/* =======================================
-
-   Canvas準備
-
-   ======================================= */
-
-const canvas=document.getElementById("canvas");
-
-const ctx=canvas.getContext("2d");
-
-function resize(){
-
-canvas.width=innerWidth;
-
-canvas.height=innerHeight;
-
+function hexToRgb(hex){
+  const h=hex.replace("#","");
+  const n=parseInt(h.length===3?h.split("").map(x=>x+x).join(""):h,16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function rgba(hex,a){
+  const c=hexToRgb(hex);
+  return `rgba(${c.r},${c.g},${c.b},${a})`;
+}
+function mixHex(a,b,t){
+  const A=hexToRgb(a),B=hexToRgb(b);
+  return `rgb(${Math.round(lerp(A.r,B.r,t))},${Math.round(lerp(A.g,B.g,t))},${Math.round(lerp(A.b,B.b,t))})`;
+}
+function formatTime(sec){
+  sec=Math.max(0,Math.ceil(sec));
+  const m=Math.floor(sec/60),s=sec%60;
+  return `${m}:${String(s).padStart(2,"0")}`;
 }
 
-resize();
+/* =========================================================
+   背景
+   ========================================================= */
+function setBackground(el,name){
+  el.className="";
+  el.classList.add(name==="stars"?"bg-stars":`bg-${name}`);
+}
+backgroundSelect.addEventListener("change",()=>{
+  setBackground(viewBg,backgroundSelect.value);
+  drawPreview();
+});
+setBackground(viewBg,"stars");
 
-addEventListener("resize",resize);
+/* =========================================================
+   プレビュー
+   「シンプルな線画＋色玉」専用。
+   本番の雫描画とは完全に別。
+   ========================================================= */
+function drawPreview(){
+  const w=previewCanvas.width,h=previewCanvas.height;
+  pctx.clearRect(0,0,w,h);
 
-/* =======================================
+  const bg=backgroundSelect.value;
+  const top=GEM_COLORS[topColor.value];
+  const bottom=GEM_COLORS[bottomColor.value];
 
-   雫クラス
+  const bgGrad=pctx.createLinearGradient(0,0,0,h);
+  const previewBg={
+    stars:["#091a35","#020711"],
+    ocean:["#07506d","#021b29"],
+    forest:["#24553a","#07170d"],
+    aurora:["#30205e","#061c18"],
+    washi:["#cfc6ba","#8f877e"]
+  }[bg];
+  bgGrad.addColorStop(0,previewBg[0]);
+  bgGrad.addColorStop(1,previewBg[1]);
+  pctx.fillStyle=bgGrad;
+  pctx.fillRect(0,0,w,h);
 
-   ======================================= */
+  /* 背景の簡易粒 */
+  if(bg==="stars"||bg==="aurora"){
+    for(let i=0;i<18;i++){
+      pctx.fillStyle=bg==="stars"?"rgba(255,255,255,.65)":"rgba(180,220,255,.22)";
+      pctx.beginPath();
+      pctx.arc((i*83)%w,(i*47)%h,1.5+(i%2),0,Math.PI*2);
+      pctx.fill();
+    }
+  }
+
+  drawVessel(pctx,w/2,h*.50,Math.min(w,h)*.40,vesselSelect.value,true,top,bottom);
+}
+function vesselPath(c,x,y,s,type){
+  c.beginPath();
+  if(type==="classic"){
+    c.moveTo(x-s*.34,y-s*.48); c.lineTo(x+s*.34,y-s*.48);
+    c.bezierCurveTo(x+s*.24,y-s*.22,x+s*.18,y-s*.12,x+s*.06,y);
+    c.bezierCurveTo(x+s*.18,y+s*.12,x+s*.24,y+s*.22,x+s*.34,y+s*.48);
+    c.lineTo(x-s*.34,y+s*.48);
+    c.bezierCurveTo(x-s*.24,y+s*.22,x-s*.18,y+s*.12,x-s*.06,y);
+    c.bezierCurveTo(x-s*.18,y-s*.12,x-s*.24,y-s*.22,x-s*.34,y-s*.48);
+  }else if(type==="orb"){
+    c.arc(x,y,s*.45,0,Math.PI*2);
+  }else if(type==="moon"){
+    c.arc(x,y,s*.42,Math.PI*.20,Math.PI*1.80);
+    c.arc(x+s*.10,y-s*.02,s*.34,Math.PI*1.80,Math.PI*.20,true);
+  }else if(type==="diamond"){
+    c.moveTo(x,y-s*.52);c.lineTo(x+s*.40,y);c.lineTo(x,y+s*.52);c.lineTo(x-s*.40,y);c.closePath();
+  }else if(type==="tube"){
+    c.roundRect(x-s*.24,y-s*.52,s*.48,s*1.04,s*.12);
+  }else if(type==="heart"){
+    c.moveTo(x,y+s*.48);
+    c.bezierCurveTo(x-s*.60,y+s*.02,x-s*.50,y-s*.42,x-s*.18,y-s*.38);
+    c.bezierCurveTo(x-s*.03,y-s*.36,x,y-s*.22,x,y-s*.15);
+    c.bezierCurveTo(x,y-s*.22,x+s*.03,y-s*.36,x+s*.18,y-s*.38);
+    c.bezierCurveTo(x+s*.50,y-s*.42,x+s*.60,y+s*.02,x,y+s*.48);
+  }
+}
+function drawVessel(c,x,y,s,type,preview=false,top,bottom){
+  c.save();
+  vesselPath(c,x,y,s,type);
+  c.fillStyle="rgba(255,255,255,.035)";
+  c.fill();
+  c.strokeStyle=preview?"rgba(245,250,255,.82)":"rgba(235,248,255,.48)";
+  c.lineWidth=preview?4:2.2;
+  c.stroke();
+
+  /* 簡易オイル玉。プレビューは線画の設計図として軽く描く。 */
+  const pts=[
+    [-.04,-.25,.055],[.08,-.10,.045],[-.07,.02,.052],
+    [.06,.19,.065],[-.09,.25,.07],[.10,.29,.055]
+  ];
+  pts.forEach((p,i)=>{
+    const px=x+p[0]*s,py=y+p[1]*s,r=p[2]*s;
+    const col=i<3?top:bottom;
+    c.fillStyle=col;
+    c.globalAlpha=.82;
+    c.beginPath();c.arc(px,py,r,0,Math.PI*2);c.fill();
+  });
+  c.globalAlpha=1;
+
+  if(type==="classic"){
+    c.strokeStyle="rgba(255,255,255,.25)";
+    c.lineWidth=2;
+    c.beginPath();
+    c.moveTo(x-s*.07,y-s*.45);c.lineTo(x-s*.02,y+s*.45);c.stroke();
+  }
+  c.restore();
+}
+
+/* =========================================================
+   容器の本番用ジオメトリ
+   ========================================================= */
+function vesselBounds(type,w,h){
+  const cx=w/2,cy=h/2;
+  if(type==="orb") return {x:cx,y:cy,w:Math.min(w,h)*.60,h:Math.min(w,h)*.60};
+  if(type==="diamond") return {x:cx,y:cy,w:Math.min(w,h)*.56,h:Math.min(w,h)*.76};
+  if(type==="moon") return {x:cx,y:cy,w:Math.min(w,h)*.58,h:Math.min(w,h)*.78};
+  if(type==="tube") return {x:cx,y:cy,w:Math.min(w,h)*.30,h:Math.min(h*.76,Math.min(w,h)*.78)};
+  if(type==="heart") return {x:cx,y:cy,w:Math.min(w,h)*.62,h:Math.min(w,h)*.70};
+  return {x:cx,y:cy,w:Math.min(w,h)*.38,h:Math.min(h*.78,Math.min(w,h)*.78)};
+}
+
+/* =========================================================
+   本番の雫
+   「見て気持ちいい」2D物理。
+   重力・粘性・震え・押し返し・簡易合体・分裂を含む。
+   ========================================================= */
+let drops=[];
+let settled=[];
+let running=false;
+let remaining=60;
+let endAt=0;
+let lastFrame=0;
+let audioCtx=null;
+let lastTouchSound=0;
 
 class Drop{
+  constructor(x,y,r,color,vy=0.8){
+    this.x=x;this.y=y;this.r=r;this.color=color;
+    this.vx=(Math.random()-.5)*.12;
+    this.vy=vy;
+    this.phase=Math.random()*Math.PI*2;
+    this.wobble=0;
+    this.stretch=1;
+    this.age=Math.random()*4;
+    this.settled=false;
+  }
+  update(dt,geo){
+    this.age+=dt;
+    if(this.settled)return;
 
-constructor(){
+    const neckX=geo.x;
+    const neckY=geo.y;
+    const neckHalf=Math.max(geo.w*.18,18);
 
-this.reset(true);
+    /* ふわっと重力。容器中央へ少し戻す。 */
+    const inNeck=Math.abs(this.x-neckX)<neckHalf;
+    this.vy+=dt*(inNeck?34:22);
+    this.vy*=Math.pow(.985,dt*60);
+    this.vy=clamp(this.vy,-20,95);
 
+    if(!inNeck){
+      this.vx+=(neckX-this.x)*dt*0.35;
+      this.vx*=Math.pow(.94,dt*60);
+    }
+
+    this.x+=this.vx*dt;
+    this.y+=this.vy*dt;
+
+    /* 震えは常時ごく弱く。 */
+    this.wobble*=Math.pow(.88,dt*60);
+
+    const bottom=geo.y+geo.h*.43-this.r;
+    if(this.y>=bottom){
+      this.y=bottom;
+      this.vy*= -.12;
+      this.vx*=.86;
+      if(Math.abs(this.vy)<2.0){
+        this.settled=true;
+        settled.push(this);
+      }
+    }
+  }
+  draw(c){
+    const pulse=Math.sin(this.age*8+this.phase)*this.wobble*.7;
+    const sx=this.stretch*(1+pulse);
+    const sy=(1-this.wobble*.12)/Math.max(.7,this.stretch);
+
+    c.save();
+    c.translate(this.x,this.y);
+    c.rotate(this.vx*.012);
+    c.scale(sx,sy);
+
+    const g=c.createRadialGradient(-this.r*.35,-this.r*.4,this.r*.05,0,0,this.r*1.2);
+    g.addColorStop(0,"rgba(255,255,255,.92)");
+    g.addColorStop(.16,rgba(this.color,.96));
+    g.addColorStop(.68,rgba(this.color,.78));
+    g.addColorStop(1,rgba(this.color,.18));
+    c.fillStyle=g;
+    c.beginPath();c.arc(0,0,this.r,0,Math.PI*2);c.fill();
+
+    c.strokeStyle="rgba(255,255,255,.18)";
+    c.lineWidth=1.2;c.stroke();
+
+    c.restore();
+  }
+  poke(px,py){
+    const dx=this.x-px,dy=this.y-py;
+    const d=Math.hypot(dx,dy);
+    const reach=this.r+32;
+    if(d<reach){
+      const f=(reach-d)/reach;
+      const nx=d?dx/d:(Math.random()-.5),ny=d?dy/d:(Math.random()-.5);
+      this.vx+=nx*105*f;
+      this.vy+=ny*35*f;
+      this.wobble=Math.max(this.wobble,.9*f);
+      this.stretch=1+Math.min(.65,f*.8);
+      return true;
+    }
+    return false;
+  }
 }
 
-reset(start=false){
+/* =========================================================
+   本番描画
+   ========================================================= */
+function resizeView(){
+  const dpr=Math.min(devicePixelRatio||1,2);
+  viewCanvas.width=Math.round(innerWidth*dpr);
+  viewCanvas.height=Math.round(innerHeight*dpr);
+  viewCanvas.style.width=innerWidth+"px";
+  viewCanvas.style.height=innerHeight+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",resizeView);
+resizeView();
 
-this.x=canvas.width/2+(Math.random()-.5)*70;
+function getGeo(){
+  return vesselBounds(vesselSelect.value,innerWidth,innerHeight);
+}
+function drawBottleReal(c,geo,type,top,bottom){
+  const x=geo.x,y=geo.y,s=Math.min(geo.w,geo.h)*.95;
+  c.save();
+  vesselPath(c,x,y,s,type);
 
-this.y=start?Math.random()*220-250:-20;
+  const glass=c.createLinearGradient(x-geo.w/2,y,x+geo.w/2,y);
+  glass.addColorStop(0,"rgba(255,255,255,.025)");
+  glass.addColorStop(.48,"rgba(255,255,255,.075)");
+  glass.addColorStop(1,"rgba(255,255,255,.015)");
+  c.fillStyle=glass;c.fill();
 
-this.r=12+Math.random()*10;
+  c.strokeStyle="rgba(225,242,255,.42)";
+  c.lineWidth=2.5;c.stroke();
 
-this.vy=.3+Math.random()*.35;
+  /* ガラスの縦ハイライト */
+  c.save();
+  c.clip();
+  const shine=c.createLinearGradient(x-geo.w*.3,0,x+geo.w*.3,0);
+  shine.addColorStop(0,"rgba(255,255,255,0)");
+  shine.addColorStop(.48,"rgba(255,255,255,.13)");
+  shine.addColorStop(.55,"rgba(255,255,255,0)");
+  shine.addColorStop(1,"rgba(255,255,255,0)");
+  c.fillStyle=shine;c.fillRect(x-geo.w/2,y-geo.h/2,geo.w,geo.h);
+  c.restore();
 
-this.vx=(Math.random()-.5)*.12;
+  c.restore();
+}
+function drawSettled(c,geo){
+  if(!settled.length)return;
+  settled.forEach((d,i)=>{
+    const y=geo.y+geo.h*.39-(i%5)*1.5;
+    const x=geo.x-geo.w*.28+(i%9)*(geo.w*.07);
+    c.save();c.globalAlpha=.76;
+    c.fillStyle=d.color;
+    c.beginPath();c.ellipse(x,y,d.r*1.28,d.r*.62,0,0,Math.PI*2);c.fill();
+    c.restore();
+  });
+}
+function drawScene(now){
+  if(!running)return;
+  const dt=Math.min(.033,(now-lastFrame)/1000||.016);
+  lastFrame=now;
 
-this.shake=0;
+  const w=innerWidth,h=innerHeight;
+  ctx.clearRect(0,0,w,h);
 
-this.phase=Math.random()*Math.PI*2;
+  const geo=getGeo();
+  const top=GEM_COLORS[topColor.value];
+  const bottom=GEM_COLORS[bottomColor.value];
 
-this.bottom=false;
+  /* 背景上の柔らかな光 */
+  const glow=ctx.createRadialGradient(w/2,h*.48,10,w/2,h*.48,Math.min(w,h)*.55);
+  glow.addColorStop(0,rgba(top[0],.07));
+  glow.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
 
+  /* 容器の中へクリップして雫を描く */
+  ctx.save();
+  vesselPath(ctx,geo.x,geo.y,Math.min(geo.w,geo.h)*.95,vesselSelect.value);
+  ctx.clip();
+
+  /* 上側から落ちる雫を少しずつ生成 */
+  if(drops.length<34 && Math.random()<dt*(1.8)){
+    const mix=Math.random()<.18;
+    const color=mix?mixHex(top[1],bottom[0],.5):top[0];
+    drops.push(new Drop(
+      geo.x+(Math.random()-.5)*geo.w*.16,
+      geo.y-geo.h*.28+Math.random()*geo.h*.12,
+      6+Math.random()*11,
+      color,
+      4+Math.random()*12
+    ));
+  }
+
+  /* 初期状態を保つ */
+  drops.forEach(d=>d.update(dt,geo));
+
+  /* 雫同士の簡易合体。 */
+  for(let i=drops.length-1;i>=0;i--){
+    for(let j=i-1;j>=0;j--){
+      const a=drops[i],b=drops[j];
+      if(a.settled||b.settled)continue;
+      const dist=Math.hypot(a.x-b.x,a.y-b.y);
+      if(dist<(a.r+b.r)*.72 && Math.min(a.r,b.r)<12){
+        const big=a.r>b.r?a:b,small=big===a?b:a;
+        big.r=Math.min(25,Math.sqrt(big.r*big.r+small.r*small.r));
+        big.color=mixHex(big.color,small.color,.38);
+        big.wobble=Math.max(big.wobble,.5);
+        drops.splice(j===i?i:j,1);
+        break;
+      }
+    }
+  }
+
+  drops.forEach(d=>d.draw(ctx));
+  drawSettled(ctx,geo);
+  ctx.restore();
+
+  /* ガラスは最後に描いて奥行きを出す。 */
+  drawBottleReal(ctx,geo,vesselSelect.value,top,bottom);
+
+  const left=Math.max(0,endAt-performance.now()/1000);
+  remaining=left;
+  viewTimer.textContent=formatTime(left);
+
+  if(left<=0){
+    finish();
+    return;
+  }
+  requestAnimationFrame(drawScene);
 }
 
-update(){
-
-if(!this.bottom){
-
-this.y+=this.vy;
-
-this.x+=Math.sin(this.phase+performance.now()/400)*.08;
-
+/* =========================================================
+   タップ／長押し
+   ========================================================= */
+function pointerPosition(e){
+  const r=viewCanvas.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
 }
-
-if(this.shake>0)this.shake*=.92;
-
-if(this.y>canvas.height-140){
-
-this.bottom=true;
-
-this.y=canvas.height-140+Math.sin(this.phase)*2;
-
-this.vy=0;
-
-}
-
-}
-
-draw(colors){
-
-ctx.save();
-
-ctx.translate(this.x,this.y);
-
-let s=1+Math.sin(performance.now()/40+this.phase)*.02*this.shake;
-
-ctx.scale(s,2-s);
-
-let g=ctx.createRadialGradient(-4,-6,2,0,0,this.r);
-
-g.addColorStop(0,"rgba(255,255,255,.95)");
-
-g.addColorStop(.35,colors[0]);
-
-g.addColorStop(1,colors[1]);
-
-ctx.fillStyle=g;
-
-ctx.beginPath();
-
-ctx.arc(0,0,this.r,0,Math.PI*2);
-
-ctx.fill();
-
-ctx.strokeStyle="rgba(255,255,255,.25)";
-
-ctx.stroke();
-
-ctx.restore();
-
-}
-
-poke(px,py){
-
-let dx=this.x-px;
-
-let dy=this.y-py;
-
-let d=Math.hypot(dx,dy);
-
-if(d<this.r+28){
-
-this.shake=1;
-
-this.x+=dx*.15;
-
-this.y+=dy*.15;
-
-}
-
-}
-
-}
-
-/* =======================================
-
-   雫生成
-
-   ======================================= */
-
-const drops=[];
-
-for(let i=0;i<36;i++) drops.push(new Drop());
-
-/* =======================================
-
-   ガラス容器描画
-
-   ======================================= */
-
-function bottle(){
-
-const w=170;
-
-const h=canvas.height*.72;
-
-const x=canvas.width/2-w/2;
-
-const y=canvas.height*.12;
-
-ctx.save();
-
-ctx.beginPath();
-
-ctx.roundRect(x,y,w,h,45);
-
-ctx.fillStyle="rgba(255,255,255,.05)";
-
-ctx.fill();
-
-ctx.strokeStyle="rgba(255,255,255,.25)";
-
-ctx.lineWidth=3;
-
-ctx.stroke();
-
-ctx.beginPath();
-
-ctx.moveTo(x+25,y+18);
-
-ctx.lineTo(x+42,y+h-20);
-
-ctx.strokeStyle="rgba(255,255,255,.15)";
-
-ctx.stroke();
-
-ctx.restore();
-
-}
-
-/* =======================================
-
-   描画ループ
-
-   ======================================= */
-
-function render(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-bottle();
-
-const colors=GEM_COLORS[topSelect.value];
-
-for(const d of drops){
-
-d.update();
-
-d.draw(colors);
-
-}
-
-requestAnimationFrame(render);
-
-}
-
-render();
-
-/* =======================================
-
-   タップするとぷるっと逃げる
-
-   ======================================= */
-
-canvas.addEventListener("pointerdown",(e)=>{
-
-const rect=canvas.getBoundingClientRect();
-
-const x=e.clientX-rect.left;
-
-const y=e.clientY-rect.top;
-
-for(const d of drops) d.poke(x,y);
-
+viewCanvas.addEventListener("pointerdown",e=>{
+  if(!running)return;
+  const p=pointerPosition(e);
+  let hit=false;
+  drops.forEach(d=>{if(d.poke(p.x,p.y))hit=true});
+  if(hit){
+    viewHint.classList.add("off");
+    playTone("touch");
+  }
+});
+viewCanvas.addEventListener("pointermove",e=>{
+  if(!running || e.buttons!==1)return;
+  const p=pointerPosition(e);
+  drops.forEach(d=>d.poke(p.x,p.y));
 });
 
-/* =======================================
+/* =========================================================
+   サウンド
+   外部音源なし。Web Audioで小さな音を生成する。
+   ========================================================= */
+function ensureAudio(){
+  if(soundSelect.value==="off")return;
+  if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+}
+function playTone(kind){
+  if(soundSelect.value==="off")return;
+  const now=performance.now();
+  if(kind==="touch" && now-lastTouchSound<70)return;
+  lastTouchSound=now;
+  ensureAudio();if(!audioCtx)return;
 
-   背景切替
-
-   ======================================= */
-
-const bg=document.getElementById("background");
-
-backgroundSelect.onchange=(e)=>{
-
-bg.className="bg-"+e.target.value;
-
-};
-
-/* =======================================
-
-   時間表示
-
-   ======================================= */
-
-const timer=document.getElementById("timer");
-
-const timeText=document.getElementById("timeText");
-
-timer.oninput=()=>{
-
-timeText.textContent=timer.value+" 秒";
-
-};
-
-/* =======================================
-
-   触らないモード
-
-   ======================================= */
-
-const panel=document.getElementById("panel");
-
-const hint=document.getElementById("hint");
-
-let ambient=false;
-
-ambientBtn.onclick=()=>{
-
-ambient=!ambient;
-
-panel.classList.toggle("hiddenUI",ambient);
-
-hint.classList.toggle("fade",ambient);
-
-};
-
-canvas.addEventListener("pointermove",()=>{
-
-if(ambient){
-
-panel.classList.remove("hiddenUI");
-
-hint.classList.remove("fade");
-
-ambient=false;
-
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  const t=audioCtx.currentTime;
+  o.type=kind==="finish"?"sine":"triangle";
+  o.frequency.setValueAtTime(kind==="finish"?660:210,t);
+  o.frequency.exponentialRampToValueAtTime(kind==="finish"?990:120,t+.12);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(kind==="finish"?.08:.035,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+(kind==="finish"?.28:.10));
+  o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+.32);
 }
 
+/* =========================================================
+   START / 戻る / 終了
+   ========================================================= */
+function startGarden(){
+  ensureAudio();
+  running=false;
+  drops=[];settled=[];
+  resizeView();
+
+  const duration=Number(timer.value);
+  remaining=duration;
+  endAt=performance.now()/1000+duration;
+  viewTimer.textContent=formatTime(duration);
+  setBackground(viewBg,backgroundSelect.value);
+
+  /* 先に画面を切り替えてからフェード。 */
+  viewScreen.classList.remove("hidden");
+  settingsScreen.classList.add("hidden");
+
+  setTimeout(()=>{
+    running=true;
+    lastFrame=performance.now();
+    viewHint.classList.remove("off");
+    requestAnimationFrame(drawScene);
+  },650);
+}
+function finish(){
+  if(!running)return;
+  running=false;
+  playTone("finish");
+  finishFlash.classList.add("on");
+  setTimeout(()=>{
+    finishFlash.classList.remove("on");
+    viewScreen.classList.add("hidden");
+    settingsScreen.classList.remove("hidden");
+  },650);
+}
+function backToSettings(){
+  running=false;
+  viewScreen.classList.add("hidden");
+  settingsScreen.classList.remove("hidden");
+}
+startBtn.addEventListener("click",startGarden);
+backBtn.addEventListener("click",backToSettings);
+
+/* =========================================================
+   設定変更 → プレビュー即時更新
+   ========================================================= */
+[topColor,bottomColor,vesselSelect,backgroundSelect].forEach(el=>{
+  el.addEventListener("change",drawPreview);
 });
+timer.addEventListener("input",()=>{
+  timeText.textContent=formatTime(Number(timer.value));
+});
+timeText.textContent=formatTime(Number(timer.value));
 
-/* =======================================
-
-   START（タイマー）
-
-   ======================================= */
-
-startBtn.onclick=()=>{
-
-const sec=Number(timer.value);
-
-setTimeout(()=>{
-
-// v1.0はここで終了音を鳴らす場所。
-
-alert("Liquid Garden 終了");
-
-},sec*1000);
-
-};
-
+/* 初回プレビュー */
+drawPreview();
 </script>
-
 </body>
-
 </html>
